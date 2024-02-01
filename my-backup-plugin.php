@@ -2,8 +2,9 @@
 /*
 Plugin Name: My Backup Plugin
 Description: A simple WordPress plugin for site and database backup.
-Version: 1.2
+Version: 1.3
 Author: Levis J.
+Plugin URI: https://levisdemo.kualotest1.com/wp-content/plugins/wp-bkp/icon.png
 */
 
 // Add menu item in admin dashboard
@@ -84,6 +85,23 @@ function backup_database() {
         mkdir($backup_dir, 0755, true);
     }
 
-    $db_backup_command = escapeshellcmd("mysqldump -u" . escapeshellarg(DB_USER) . " -p" . escapeshellarg(DB_PASSWORD) . " -h" . escapeshellarg(DB_HOST) . " " . escapeshellarg(DB_NAME) . " > {$backup_dir}{$db_backup_file}");
-    shell_exec($db_backup_command);
+    // Check if wp-cli is available
+    $wp_cli_check_command = "command -v wp";
+    $wp_cli_check_result = shell_exec($wp_cli_check_command);
+
+    if (empty($wp_cli_check_result)) {
+        $wp_cli_check_command = "command -v wp-cli";
+        $wp_cli_check_result = shell_exec($wp_cli_check_command);
+
+        if (empty($wp_cli_check_result)) {
+            echo '<div class="error"><p>wp-cli not found. Please install wp-cli or make sure it is in your PATH.</p></div>';
+            return;
+        }
+    }
+
+    // Determine the binary name (wp or wp-cli)
+    $wp_binary = (empty(shell_exec("command -v wp"))) ? 'wp-cli' : 'wp';
+
+    // Construct wp-cli db export command
+    $db_backup_command = "$wp_binary db export --path=" . ABSPATH . " --allow-root --skip-plugins --skip-themes --file={$backup_dir}{$db_backup_file}";
 }
