@@ -2,7 +2,7 @@
 /*
 Plugin Name: My Backup Plugin
 Description: A simple WordPress plugin for site and database backup.
-Version: 1.1
+Version: 1.2
 Author: Levis J.
 */
 
@@ -23,7 +23,7 @@ function my_backup_menu() {
 function my_backup_settings_page() {
     if (isset($_POST['backup_now'])) {
         // Get selected backup option
-        $backup_option = isset($_POST['backup_option']) ? $_POST['backup_option'] : '';
+        $backup_option = sanitize_text_field($_POST['backup_option']);
 
         // Perform backup based on the selected option
         if ($backup_option === 'files') {
@@ -52,9 +52,10 @@ function my_backup_settings_page() {
             </label>
             <br>
             <label>
-                <input type="radio" name="backup_option" value="both"> Complete Backup
+                <input type="radio" name="backup_option" value="both"> Backup Both Files and Database
             </label>
             <br><br>
+            <?php wp_nonce_field('my_backup_nonce', 'my_backup_nonce'); ?>
             <input type="submit" name="backup_now" class="button button-primary" value="Backup Now">
         </form>
     </div>
@@ -70,7 +71,7 @@ function backup_files() {
         mkdir($backup_dir, 0755, true);
     }
 
-    $backup_command = "zip -r {$backup_dir}{$backup_file} " . ABSPATH . " -x '*.git*' -x '*wp-content/backups*'";
+    $backup_command = escapeshellcmd("zip -r {$backup_dir}{$backup_file} " . ABSPATH . " -x '*.git*' -x '*wp-content/backups*'");
     shell_exec($backup_command);
 }
 
@@ -83,6 +84,6 @@ function backup_database() {
         mkdir($backup_dir, 0755, true);
     }
 
-    $db_backup_command = "mysqldump -u" . DB_USER . " -p" . DB_PASSWORD . " -h" . DB_HOST . " " . DB_NAME . " > {$backup_dir}{$db_backup_file}";
+    $db_backup_command = escapeshellcmd("mysqldump -u" . escapeshellarg(DB_USER) . " -p" . escapeshellarg(DB_PASSWORD) . " -h" . escapeshellarg(DB_HOST) . " " . escapeshellarg(DB_NAME) . " > {$backup_dir}{$db_backup_file}");
     shell_exec($db_backup_command);
 }
